@@ -178,3 +178,600 @@ body {
   opacity: 0.3;
   transition: 0s;
 }
+
+/* ============================================================
+   江湖舆图 Atlas
+   ============================================================ */
+
+.atlas-page {
+  position: relative;
+  height: calc(100vh - 4rem);
+  margin-top: 4rem;
+  overflow: hidden;
+  background-color: #f5f0e6;
+  background-image:
+    radial-gradient(ellipse at 20% 10%, rgba(212, 175, 55, 0.08), transparent 55%),
+    radial-gradient(ellipse at 85% 80%, rgba(74, 103, 65, 0.07), transparent 55%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+}
+
+.atlas-message {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+}
+
+.atlas-loading-seal {
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: '"Ma Shan Zheng"', cursive;
+  font-size: 2.4rem;
+  color: #f5f0e6;
+  background: linear-gradient(135deg, #c41e3a, #88172b);
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(196, 30, 58, 0.35);
+  animation: atlasSealPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes atlasSealPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 6px 24px rgba(196, 30, 58, 0.3); }
+  50% { transform: scale(1.06); box-shadow: 0 10px 34px rgba(196, 30, 58, 0.5); }
+}
+
+.atlas-stage {
+  position: absolute;
+  inset: 0;
+  outline: none;
+  /* 触屏拖拽由舆图接管，禁止浏览器的滚屏/缩放手势冲突 */
+  touch-action: none;
+  overscroll-behavior: contain;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.atlas-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+}
+.atlas-svg:active { cursor: grabbing; }
+
+/* —— 底图：国界 / 江河 / 山峦 —— */
+.atlas-border {
+  fill: rgba(45, 58, 74, 0.025);
+  stroke: rgba(45, 58, 74, 0.42);
+  stroke-width: 2.4;
+  stroke-dasharray: 9 7;
+  stroke-linejoin: round;
+}
+
+.atlas-river {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.atlas-river--yangtze {
+  stroke: rgba(74, 122, 145, 0.4);
+  stroke-width: 3.4;
+}
+.atlas-river--yellow {
+  stroke: rgba(185, 148, 35, 0.32);
+  stroke-width: 3;
+}
+
+/* 山峦：外层一次性淡入；内层无限呼吸（两层各一个动画，避免互相覆盖） */
+.atlas-mountain-in {
+  opacity: 0;
+  animation: atlasMountainIn 1.6s ease-out forwards;
+}
+.atlas-mountain-breathe {
+  stroke: none;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: atlasMountainBreathe 11s ease-in-out infinite;
+}
+
+@keyframes atlasMountainIn {
+  0% { opacity: 0; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes atlasMountainBreathe {
+  0%, 100% { opacity: 0.68; transform: scaleY(1); }
+  50% { opacity: 1; transform: scaleY(1.035); }
+}
+
+/* —— 剑脉 —— */
+.atlas-vein {
+  fill: none;
+  stroke: rgba(45, 58, 74, 0.35);
+  stroke-linecap: round;
+}
+.atlas-vein-flow {
+  fill: none;
+  stroke: rgba(212, 175, 55, 0.9);
+  stroke-linecap: round;
+  stroke-dasharray: 2 16;
+  filter: drop-shadow(0 0 2px rgba(226, 192, 86, 0.8));
+  animation: atlasVeinFlow 1.6s linear infinite;
+  pointer-events: none;
+}
+@keyframes atlasVeinFlow {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -36; }
+}
+
+/* —— 据点六角 —— */
+.atlas-hex {
+  fill: rgba(245, 240, 230, 0.92);
+  stroke: #2d3a4a;
+  stroke-width: 1.8;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: atlasHexBreathe 4.5s ease-in-out infinite;
+}
+.atlas-hex-inner {
+  fill: none;
+  stroke: rgba(196, 30, 58, 0.28);
+  stroke-width: 1;
+  transform-box: fill-box;
+  transform: scale(0.72);
+}
+.atlas-marker.is-selected .atlas-hex {
+  fill: rgba(196, 30, 58, 0.1);
+  stroke: #c41e3a;
+  stroke-width: 2.4;
+}
+@keyframes atlasHexBreathe {
+  0%, 100% { filter: drop-shadow(0 0 1px rgba(45, 58, 74, 0.25)); }
+  50% { filter: drop-shadow(0 0 7px rgba(196, 30, 58, 0.35)); }
+}
+
+/* 徽记：常态静止，悬停缓转 */
+.atlas-emblem {
+  color: #2d3a4a;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.atlas-marker:hover .atlas-emblem,
+.atlas-marker.is-selected .atlas-emblem {
+  transform: rotate(180deg);
+  color: #c41e3a;
+}
+.atlas-emblem-disc {
+  fill: rgba(212, 175, 55, 0.16);
+  stroke: rgba(212, 175, 55, 0.35);
+  stroke-width: 1;
+}
+.atlas-emblem-glyph {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.atlas-marker:hover .atlas-hex {
+  stroke: #c41e3a;
+}
+
+/* —— 涟漪 —— */
+.atlas-ripple {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: atlasRipple 1.1s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes atlasRipple {
+  0% { transform: scale(0.5); opacity: 0.7; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+/* —— LOD：低倍只显徽记 —— */
+.atlas-label {
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+[data-lod='1'] .atlas-label,
+[data-lod='2'] .atlas-label { opacity: 1; }
+
+/* 剑名层自身 data-lod 控制，仅 LOD=2 出现 */
+.atlas-sword-name {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+[data-lod='2'] .atlas-sword-name { opacity: 1; }
+
+.atlas-label-text {
+  font-family: '"Noto Serif SC"', SimSun, serif;
+  font-size: 13px;
+  font-weight: 600;
+  fill: #1a1a1a;
+  paint-order: stroke;
+  stroke: rgba(245, 240, 230, 0.9);
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
+  /* 文字随地图缩放，但限制下限，高倍下不至于过大 */
+  pointer-events: none;
+}
+.atlas-sword-dot {
+  fill: #d4af37;
+  stroke: #7c5a1c;
+  stroke-width: 0.8;
+  filter: drop-shadow(0 0 2px rgba(226, 192, 86, 0.9));
+}
+.atlas-sword-name {
+  font-family: '"Ma Shan Zheng"', '"Noto Serif SC"', cursive;
+  font-size: 12px;
+  fill: #5a3f20;
+  paint-order: stroke;
+  stroke: rgba(245, 240, 230, 0.85);
+  stroke-width: 3px;
+  pointer-events: none;
+}
+.atlas-sword-name.is-hot {
+  fill: #c41e3a;
+  font-weight: 700;
+}
+
+/* —— 云气（屏幕空间漂移） —— */
+.atlas-clouds {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.atlas-cloud {
+  position: absolute;
+  left: -600px;
+  height: 90px;
+  border-radius: 999px;
+  background:
+    radial-gradient(ellipse 180px 55px at 30% 55%, rgba(255, 255, 255, 0.85), transparent 70%),
+    radial-gradient(ellipse 260px 70px at 60% 45%, rgba(255, 255, 255, 0.7), transparent 72%),
+    radial-gradient(ellipse 150px 48px at 82% 60%, rgba(255, 255, 255, 0.75), transparent 70%);
+  filter: blur(3px);
+  /* 漂移周期由内联 --drift 控制；淡入淡出固定 9s，二者时长互不干扰 */
+  animation-name: atlasCloudDrift, atlasCloudFade;
+  animation-duration: var(--drift, 100s), 9s;
+  animation-timing-function: linear, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+}
+@keyframes atlasCloudDrift {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(100vw + 1200px)); }
+}
+@keyframes atlasCloudFade {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.9; }
+}
+
+/* —— 标题 —— */
+.atlas-title {
+  position: absolute;
+  top: 18px;
+  left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  pointer-events: none;
+  color: #2d3a4a;
+  text-shadow: 0 1px 6px rgba(245, 240, 230, 0.9);
+}
+.atlas-title .font-brush {
+  font-size: 2rem;
+  letter-spacing: 0.35rem;
+}
+.atlas-title small {
+  font-size: 0.72rem;
+  color: rgba(45, 58, 74, 0.6);
+  letter-spacing: 0.15rem;
+}
+
+/* —— 悬停浮签 —— */
+.atlas-tooltip {
+  position: absolute;
+  z-index: 30;
+  max-width: 220px;
+  padding: 8px 12px;
+  background: rgba(248, 246, 242, 0.96);
+  border: 1px solid rgba(45, 58, 74, 0.25);
+  box-shadow: 0 8px 26px rgba(26, 26, 26, 0.16);
+  backdrop-filter: blur(2px);
+  animation: atlasTipIn 0.18s ease-out;
+}
+@keyframes atlasTipIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* —— 左下控制条 —— */
+.atlas-controls {
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px;
+  background: rgba(248, 246, 242, 0.9);
+  border: 1px solid rgba(45, 58, 74, 0.2);
+  box-shadow: 0 4px 18px rgba(26, 26, 26, 0.12);
+}
+.atlas-controls button {
+  width: 34px;
+  height: 34px;
+  font-size: 1.1rem;
+  color: #2d3a4a;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+.atlas-controls button:hover {
+  color: #c41e3a;
+  border-color: rgba(196, 30, 58, 0.35);
+  background: rgba(196, 30, 58, 0.06);
+}
+.atlas-zoom-readout {
+  min-width: 44px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: rgba(45, 58, 74, 0.7);
+  font-family: '"Noto Serif SC"', serif;
+}
+
+/* —— 右下缩略图 —— */
+.atlas-minimap {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 20;
+  padding: 8px;
+  background: rgba(248, 246, 242, 0.92);
+  border: 1px solid rgba(45, 58, 74, 0.25);
+  box-shadow: 0 6px 22px rgba(26, 26, 26, 0.15);
+}
+.atlas-minimap-title {
+  font-family: '"Ma Shan Zheng"', cursive;
+  font-size: 0.85rem;
+  letter-spacing: 0.2rem;
+  color: #2d3a4a;
+  margin-bottom: 5px;
+  text-align: center;
+}
+.atlas-minimap svg {
+  display: block;
+  cursor: crosshair;
+  border: 1px solid rgba(45, 58, 74, 0.18);
+}
+.atlas-minimap-bg { fill: rgba(232, 224, 208, 0.6); }
+.atlas-minimap-border {
+  fill: none;
+  stroke: rgba(45, 58, 74, 0.45);
+  stroke-width: 6;
+  stroke-dasharray: 18 14;
+}
+.atlas-minimap-river {
+  fill: none;
+  stroke: rgba(74, 122, 145, 0.4);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+.atlas-minimap-dot {
+  fill: #2d3a4a;
+}
+.atlas-minimap-dot.is-selected {
+  fill: #c41e3a;
+}
+.atlas-minimap-view {
+  fill: rgba(196, 30, 58, 0.08);
+  stroke: #c41e3a;
+  stroke-width: 5;
+  vector-effect: non-scaling-stroke;
+}
+
+/* 侧栏展开时，缩略图与控制条抬到侧栏左缘之外，避免被遮 */
+.atlas-stage.has-sidebar .atlas-minimap {
+  right: 378px;
+}
+.atlas-stage.has-sidebar .atlas-controls {
+  bottom: 18px;
+}
+@media (max-width: 768px) {
+  .atlas-stage.has-sidebar .atlas-minimap { display: none; }
+}
+
+/* —— 侧栏 —— */
+.atlas-sidebar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 25;
+  width: 360px;
+  max-width: 88vw;
+  transform: translateX(105%);
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  background: linear-gradient(180deg, rgba(248, 246, 242, 0.97), rgba(240, 234, 220, 0.97));
+  border-left: 1px solid rgba(45, 58, 74, 0.2);
+  box-shadow: -12px 0 40px rgba(26, 26, 26, 0.16);
+  pointer-events: none;
+}
+.atlas-sidebar.is-open {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+.atlas-sidebar-inner {
+  height: 100%;
+  overflow-y: auto;
+  padding: 26px 24px 90px;
+  -webkit-overflow-scrolling: touch;
+}
+.atlas-sidebar-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5c5854;
+  background: transparent;
+  border: 1px solid rgba(45, 58, 74, 0.2);
+  transition: all 0.2s;
+}
+.atlas-sidebar-close:hover {
+  color: #c41e3a;
+  border-color: rgba(196, 30, 58, 0.4);
+}
+.atlas-sidebar-head { padding-right: 40px; margin-bottom: 14px; }
+.atlas-sidebar-desc {
+  font-size: 0.86rem;
+  line-height: 1.9;
+  color: #5c5854;
+  margin: 0 0 18px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.45);
+  border-left: 3px solid rgba(196, 30, 58, 0.5);
+}
+.atlas-lost-note {
+  margin-top: 10px;
+  font-size: 0.78rem;
+  color: #88172b;
+  background: rgba(196, 30, 58, 0.07);
+  padding: 6px 10px;
+  border: 1px dashed rgba(196, 30, 58, 0.35);
+}
+.atlas-sidebar-h {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: '"Ma Shan Zheng"', cursive;
+  font-size: 1.15rem;
+  letter-spacing: 0.15rem;
+  color: #2d3a4a;
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(45, 58, 74, 0.15);
+}
+.atlas-sidebar section { margin-bottom: 22px; }
+
+.atlas-skill-tag {
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  color: #33442e;
+  background: rgba(155, 180, 143, 0.22);
+  border: 1px solid rgba(74, 103, 65, 0.3);
+  font-family: '"Noto Serif SC"', serif;
+}
+
+.atlas-sword-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.atlas-sword-link {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(45, 58, 74, 0.14);
+  transition: all 0.25s;
+}
+a.atlas-sword-link:hover {
+  border-color: rgba(196, 30, 58, 0.45);
+  background: rgba(196, 30, 58, 0.05);
+  transform: translateX(-3px);
+}
+.atlas-sword-link.is-focus {
+  border-color: #c41e3a;
+  box-shadow: 0 0 0 2px rgba(196, 30, 58, 0.18);
+}
+.atlas-sword-link.is-lost {
+  opacity: 0.75;
+  background: repeating-linear-gradient(45deg, rgba(0,0,0,0.02) 0 6px, transparent 6px 12px);
+}
+.atlas-sword-go {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: #c41e3a;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: all 0.25s;
+}
+a.atlas-sword-link:hover .atlas-sword-go { opacity: 1; transform: translateX(0); }
+.atlas-empty-line { font-size: 0.82rem; color: #8b8680; padding: 8px 4px; }
+
+.atlas-locate-btn {
+  width: 100%;
+  padding: 10px;
+  font-family: '"Ma Shan Zheng"', cursive;
+  font-size: 1.05rem;
+  letter-spacing: 0.2rem;
+  color: #f5f0e6;
+  background: linear-gradient(135deg, #2d3a4a, #1a1a1a);
+  border: none;
+  transition: all 0.25s;
+}
+.atlas-locate-btn:hover {
+  background: linear-gradient(135deg, #c41e3a, #88172b);
+  letter-spacing: 0.3rem;
+}
+
+/* —— 踪迹不明 —— */
+.atlas-missing {
+  position: absolute;
+  left: 18px;
+  top: 104px;
+  z-index: 18;
+  max-width: min(420px, 46vw);
+  padding: 9px 12px;
+  background: rgba(248, 246, 242, 0.85);
+  border: 1px dashed rgba(45, 58, 74, 0.3);
+}
+.atlas-missing-title {
+  font-size: 0.75rem;
+  letter-spacing: 0.18rem;
+  color: #5c5854;
+  margin-bottom: 6px;
+  font-family: '"Noto Serif SC"', serif;
+}
+.atlas-missing-chip {
+  font-size: 0.75rem;
+  padding: 3px 9px;
+  color: #5c5854;
+  background: rgba(212, 201, 176, 0.4);
+  border: 1px solid rgba(92, 88, 84, 0.3);
+  font-family: '"Noto Serif SC"', serif;
+  transition: all 0.2s;
+}
+.atlas-missing-chip:hover,
+.atlas-missing-chip.is-active {
+  color: #f5f0e6;
+  background: #88172b;
+  border-color: #88172b;
+}
+
+/* —— 移动端 —— */
+@media (max-width: 768px) {
+  .atlas-title .font-brush { font-size: 1.4rem; }
+  .atlas-title small { display: none; }
+  .atlas-minimap { transform: scale(0.82); transform-origin: right bottom; }
+  .atlas-missing { max-width: 56vw; top: 78px; }
+  .atlas-sidebar { width: 100%; max-width: 100%; }
+  .atlas-controls { bottom: 12px; left: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atlas-cloud,
+  .atlas-mountain,
+  .atlas-vein-flow,
+  .atlas-hex { animation: none !important; }
+}
