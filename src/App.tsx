@@ -6,6 +6,7 @@ import SwordList from "@/pages/SwordList";
 import SwordDetail from "@/pages/SwordDetail";
 import SwordsmanList from "@/pages/SwordsmanList";
 import SectList from "@/pages/SectList";
+import MapPage from "@/pages/MapPage";
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
             <Route path="/swords/:id" element={<SwordDetail />} />
             <Route path="/swordsmen" element={<SwordsmanList />} />
             <Route path="/sects" element={<SectList />} />
+            <Route path="/map" element={<MapPage />} />
           </Routes>
         </main>
         <Footer />

@@ -178,3 +178,111 @@ body {
   opacity: 0.3;
   transition: 0s;
 }
+
+/* ===== 江湖舆图 ===== */
+
+/* 水墨山峦淡入 */
+@keyframes mountainFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: var(--mo, 0.4);
+    transform: translateY(0);
+  }
+}
+
+.ink-mountain {
+  opacity: 0;
+  animation: mountainFadeIn 2.2s ease-out forwards;
+}
+
+/* 云气漂移 */
+@keyframes cloudDrift {
+  0%,
+  100% {
+    transform: translateX(-12px);
+  }
+  50% {
+    transform: translateX(18px);
+  }
+}
+
+.ink-cloud {
+  animation: cloudDrift 16s ease-in-out infinite;
+}
+
+.ink-cloud-fast {
+  animation: cloudDrift 10s ease-in-out infinite reverse;
+}
+
+/* 沿剑脉流动的剑光 */
+@keyframes veinFlow {
+  to {
+    stroke-dashoffset: -48;
+  }
+}
+
+.vein-flow {
+  stroke-dasharray: 2 10;
+  animation: veinFlow 1.4s linear infinite;
+}
+
+/* 悬停时徽记缓转 */
+@keyframes emblemSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.emblem-rot {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.sect-node:hover .emblem-rot {
+  animation: emblemSpin 14s linear infinite;
+}
+
+.sect-node:hover .sect-hex {
+  filter: drop-shadow(0 0 5px rgba(196, 30, 58, 0.45));
+}
+
+/* 选中据点时的涟漪扩散 */
+@keyframes selectRipple {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+.select-ripple {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: selectRipple 1.5s ease-out forwards;
+  pointer-events: none;
+}
+
+/* 低缩放只画徽记，放大后才出现标签 */
+.map-detail {
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+.is-detail .map-detail {
+  opacity: 1;
+}
+
+/* 文字水墨晕染底色，保证在复杂底图上可读 */
+.map-label {
+  paint-order: stroke;
+  stroke: #f5f0e6;
+  stroke-width: 2.5px;
+  stroke-linejoin: round;
+}
